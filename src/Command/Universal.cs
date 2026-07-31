@@ -2,6 +2,7 @@ using CommandSystem;
 using CommandSystem.Parsing;
 using DotNext.Threading;
 using KanonBot.Drivers;
+using System.IO;
 
 
 namespace KanonBot.Command
@@ -159,8 +160,32 @@ namespace KanonBot.Command
             }
         }
 
+        private static readonly string SharedConfigPath =
+            @"G:\My pack\Agent Work\codex_work\napcat-local-bots\configs\group-bot-config.json";
+        private static Dictionary<string, Dictionary<string, bool>> _groupConfig = new();
+        private static DateTime _groupConfigLastRead = DateTime.MinValue;
+
+        private static bool IsGroupDisabled(string? groupId)
+        {
+            if (string.IsNullOrEmpty(groupId)) return false;
+            try
+            {
+                if ((DateTime.UtcNow - _groupConfigLastRead).TotalSeconds > 5)
+                {
+                    if (File.Exists(SharedConfigPath))
+                        _groupConfig = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, bool>>>(File.ReadAllText(SharedConfigPath)) ?? new();
+                    _groupConfigLastRead = DateTime.UtcNow;
+                }
+                return _groupConfig.TryGetValue(groupId, out var bots) && bots.TryGetValue("kanon", out var enabled) && !enabled;
+            }
+            catch { return false; }
+        }
+
         public static async Task Parser(Target target)
         {
+            // Shared group-bot-config check (controlled by WuxinBot GUI)
+            if (IsGroupDisabled(target.source?.Id?.ToString())) return;
+
             // 解析之前先确认是否有等待的消息
             foreach (var (t, cw) in Target.Waiters.Value)
             {
