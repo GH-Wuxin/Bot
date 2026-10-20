@@ -28,6 +28,12 @@ public record InfoPanelV1Context
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? NoPpPlusPanelSrc { get; init; }
 
+    [JsonPropertyName("pp_plus_initializing")]
+    public bool PpPlusInitializing { get; init; }
+
+    [JsonPropertyName("pp_plus_initializing_text")]
+    public string PpPlusInitializingText { get; init; } = "PP+ 正在初始化…";
+
     [JsonPropertyName("badges")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<BadgeModel>? Badges { get; init; }

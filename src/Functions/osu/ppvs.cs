@@ -39,6 +39,13 @@ namespace KanonBot.Functions
             // 获取自身 osu 信息（在需要时复用）
             async Task<API.OSU.Models.User?> GetSelfUser()
             {
+                if (!Config.IamEnabled)
+                {
+                    var ctx = await Accounts.ResolveIamUser(target);
+                    if (ctx?.OsuUid == null) return null;
+                    return await API.OSU.Client.GetUser(ctx.OsuUid.Value);
+                }
+
                 var accInfo = Accounts.GetAccInfo(target);
                 string provider;
                 try
@@ -133,7 +140,7 @@ namespace KanonBot.Functions
 
             Image.PPVS.PPVSPanelData data = new();
 
-            var d1 = await API.OSU.Client.PPlus.GetUserPlusDataNext(leftUser.Id);
+            var d1 = await API.OSU.PPlusRefresh.GetOrCompute(leftUser.Id);
             if (d1 == null)
             {
                 await target.Treply("osu.ppvs_error");
@@ -142,7 +149,7 @@ namespace KanonBot.Functions
             data.u2Name = leftUser.Username;
             data.u2 = d1.Performances;
 
-            var d2 = await API.OSU.Client.PPlus.GetUserPlusDataNext(rightUser.Id);
+            var d2 = await API.OSU.PPlusRefresh.GetOrCompute(rightUser.Id);
             if (d2 == null)
             {
                 await target.Treply("osu.ppvs_error");

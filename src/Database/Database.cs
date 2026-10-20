@@ -25,6 +25,39 @@ public class Client
 {
     private static Config.Base config = Config.inner!;
 
+    public static void EnsureSchema()
+    {
+        using var db = GetInstance();
+        db.CreateTable<ChatBot>(tableOptions: TableOptions.CreateIfNotExists);
+        db.CreateTable<BadgeRedemptionCode>(tableOptions: TableOptions.CreateIfNotExists);
+        db.CreateTable<Bottle>(tableOptions: TableOptions.CreateIfNotExists);
+        db.CreateTable<OsuStandardBeatmapTechData>(tableOptions: TableOptions.CreateIfNotExists);
+        db.CreateTable<OSUSeasonalPass_ScoreRecords>(
+            tableOptions: TableOptions.CreateIfNotExists
+        );
+        db.CreateTable<OSUSeasonalPass>(tableOptions: TableOptions.CreateIfNotExists);
+        db.CreateTable<Model.User>(tableOptions: TableOptions.CreateIfNotExists);
+        db.CreateTable<UserOSU>(tableOptions: TableOptions.CreateIfNotExists);
+        db.CreateTable<UserPPYSB>(tableOptions: TableOptions.CreateIfNotExists);
+        db.CreateTable<OsuArchivedRec>(tableOptions: TableOptions.CreateIfNotExists);
+        db.CreateTable<OsuPPlus>(tableOptions: TableOptions.CreateIfNotExists);
+        // 24h 缓存需要知道"上次成功更新时间"；CreateTable 不会给已存在的表补列，
+        // 所以这里显式做一次幂等迁移。MariaDB 支持 ADD COLUMN IF NOT EXISTS。
+        try
+        {
+            db.Execute(
+                "ALTER TABLE osu_performancepointplus_record ADD COLUMN IF NOT EXISTS updated_at BIGINT NOT NULL DEFAULT 0"
+            );
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "osu_performancepointplus_record.updated_at migration skipped");
+        }
+        db.CreateTable<BadgeList>(tableOptions: TableOptions.CreateIfNotExists);
+        db.CreateTable<MailVerify>(tableOptions: TableOptions.CreateIfNotExists);
+        db.CreateTable<BadgeExpirationDateRec>(tableOptions: TableOptions.CreateIfNotExists);
+    }
+
     public static DB GetInstance()
     {
         var options = new DataOptions().UseMySqlConnector(
@@ -151,6 +184,33 @@ public class Client
         return await db.UserOSU.Where(it => it.uid == kanon_uid).FirstOrDefaultAsync();
     }
 
+    public static async Task<Model.UserOSU?> GetOsuUserByQQ(long qqId)
+    {
+        using var db = GetInstance();
+        var user = await db.User.Where(it => it.qq_id == qqId).FirstOrDefaultAsync();
+        if (user == null) return null;
+        return await db.UserOSU.Where(it => it.uid == user.uid).FirstOrDefaultAsync();
+    }
+
+    public static async Task<Model.User?> CreateOrUpdateQQUser(long qqId)
+    {
+        using var db = GetInstance();
+        var existing = await db.User.Where(it => it.qq_id == qqId).FirstOrDefaultAsync();
+        if (existing != null) return existing;
+
+        var newUser = new Model.User
+        {
+            qq_id = qqId,
+            email = $"qq_{qqId}@local.bind",
+            status = 1,
+            permissions = "user"
+        };
+        var result = await db.InsertAsync(newUser);
+        if (result > 0)
+            return await db.User.Where(it => it.qq_id == qqId).FirstOrDefaultAsync();
+        return null;
+    }
+
     public static async Task<bool> InsertPpysbUser(long kanon_uid, long osu_uid)
     {
         using var db = GetInstance();
@@ -234,6 +294,35 @@ public class Client
         }
     }
 
+    /// <summary>
+    /// 读缓存并带回"上次成功更新时间"（Unix 秒）。updatedAt 为 0 表示没有可用缓存。
+    /// </summary>
+    public static async Task<(
+        API.OSU.Models.PPlusData.UserDataNext? data,
+        long updatedAt
+    )> GetOsuPPlusDataNextWithTime(long osu_uid)
+    {
+        using var db = GetInstance();
+        var data = await db.OsuPPlus.FirstOrDefaultAsync(it => it.uid == osu_uid);
+        if (data is null || data.pp == 0)
+            return (null, data?.updated_at ?? 0);
+        var realData = new API.OSU.Models.PPlusData.UserDataNext
+        {
+            Id = data.uid,
+            Performances = new API.OSU.Models.PPlusData.UserPerformancesNext
+            {
+                PerformanceTotal = data.pp,
+                AccuracyTotal = data.acc,
+                FlowAimTotal = data.flow,
+                JumpAimTotal = data.jump,
+                PrecisionTotal = data.pre,
+                SpeedTotal = data.spd,
+                StaminaTotal = data.sta
+            }
+        };
+        return (realData, data.updated_at);
+    }
+
     public static async Task<bool> UpdateOsuPPlusDataNext(
         API.OSU.Models.PPlusData.UserDataNext ppdata
     )
@@ -250,7 +339,8 @@ public class Client
                 jump = ppdata.Performances.JumpAimTotal,
                 pre = ppdata.Performances.PrecisionTotal,
                 spd = ppdata.Performances.SpeedTotal,
-                sta = ppdata.Performances.StaminaTotal
+                sta = ppdata.Performances.StaminaTotal,
+                updated_at = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
             }
         );
         return result > 0;

@@ -83,7 +83,10 @@ namespace KanonBot.Functions
             {
                 try
                 {
-                    await Client.PPlus.UpdateUserPlusDataNext(OnlineOsuInfo!.Id);
+                    var fresh = await Client.PPlus.UpdateUserPlusDataNext(OnlineOsuInfo!.Id);
+                    // 刷新结果写回 24h 缓存，下一次 !info 直接命中。
+                    if (fresh is not null)
+                        await Database.Client.UpdateOsuPPlusDataNext(fresh);
                 }
                 catch { } //更新pp+失败，不返回信息
             });

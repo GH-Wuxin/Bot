@@ -35,6 +35,7 @@ public class Model
     public class ChatBot
     {
         [PrimaryKey]
+        [Column(Length = 128)]
         public string uid { get; set; } = "";
 
         [Column]
@@ -170,39 +171,40 @@ public class Model
         public long uid { get; set; }
 
         [PrimaryKey]
+        [Column(Length = 320)]
         public string? email { get; set; }
 
-        [Column]
+        [Column(Length = 255)]
         public string? passwd { get; set; }
 
         [Column]
         public long qq_id { get; set; }
 
-        [Column]
+        [Column(Length = 128)]
         public string? qq_guild_uid { get; set; }
 
-        [Column]
+        [Column(Length = 128)]
         public string? kook_uid { get; set; }
 
-        [Column]
+        [Column(Length = 128)]
         public string? discord_uid { get; set; }
 
-        [Column]
+        [Column(Length = 512)]
         public string? permissions { get; set; }
 
-        [Column]
+        [Column(Length = 45)]
         public string? last_login_ip { get; set; }
 
-        [Column]
+        [Column(Length = 64)]
         public string? last_login_time { get; set; }
 
         [Column]
         public int status { get; set; }
 
-        [Column]
+        [Column(DataType = DataType.Text)]
         public string? displayed_badge_ids { get; set; }
 
-        [Column]
+        [Column(DataType = DataType.Text)]
         public string? owned_badge_ids { get; set; }
     }
 
@@ -296,6 +298,7 @@ public class Model
         public int global_rank { get; set; }
 
         [PrimaryKey]
+        [Column(Length = 16)]
         public required string gamemode { get; set; }
 
         [PrimaryKey]
@@ -328,6 +331,10 @@ public class Model
 
         [Column]
         public double sta { get; set; }
+
+        // Unix 秒；0 = 迁移前的旧记录，视为时间未知（一律按过期处理）。
+        [Column]
+        public long updated_at { get; set; }
     }
 
     [Table("badge_list")]
