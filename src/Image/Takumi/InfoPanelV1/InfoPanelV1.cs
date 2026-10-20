@@ -118,6 +118,7 @@ public static class InfoV1Takumi
             ModeIconSrc = AssetPath("legacy", "mode_icon", $"{data.userInfo.Mode.ToStr()}.png"),
             PpPlusPanelSrc = hexPoints is not null ? AssetPath("legacy", "pp+-v1.png") : null,
             NoPpPlusPanelSrc = hexPoints is null ? AssetPath("legacy", "nopp+info-v1.png") : null,
+            PpPlusInitializing = data.pplusInitializing,
             Badges = await BuildBadges(data),
             HexSvgPoints = hexPoints,
             HexFillColor = hexPoints is not null ? "rgba(253, 148, 62, 0.502)" : null,

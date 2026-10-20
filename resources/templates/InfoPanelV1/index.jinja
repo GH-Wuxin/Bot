@@ -52,7 +52,11 @@
       {{ text(label.value, label.x, label.y, 18, "exo", "400", "left", "#ffcc33") }}
     {% endfor %}
   {% else %}
-    <img class="pp-layer" src="{{ no_pp_plus_panel_src }}" />
+    {% if pp_plus_initializing %}
+      {{ text(pp_plus_initializing_text, 60, 742, 24, "harmony", "500", "left", "#ffcc33") }}
+    {% else %}
+      <img class="pp-layer" src="{{ no_pp_plus_panel_src }}" />
+    {% endif %}
   {% endif %}
 
   {{ text(update_time_display, 15, 25, 20) }}

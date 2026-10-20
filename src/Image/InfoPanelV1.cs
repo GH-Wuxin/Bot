@@ -27,6 +27,11 @@ public static class InfoV1
         public OSU.Models.UserExtended userInfo;
         public OSU.Models.User? prevUserInfo;
         public OSU.Models.PPlusData.UserPerformancesNext? pplusInfo;
+
+        /// <summary>
+        /// PP+ 缓存缺失、且后台刷新已发起：面板显示"正在初始化"而不是"无数据"。
+        /// </summary>
+        public bool pplusInitializing;
         public required long osuId; // 官方服务器的id
         public int daysBefore = 0;
         public List<string> badgeImageUrls =  [ ];

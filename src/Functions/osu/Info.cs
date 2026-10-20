@@ -135,23 +135,19 @@ new() { Name = "pp_version", LegacyName = "pp", Description = "PP algorithm vers
 
                 if (data.userInfo.Mode == Mode.OSU)
                 {
-                    var d = await Client.PPlus.GetUserPlusDataNext(osuID);
-                    if (d is not null)
+                    // 只读缓存，绝不阻塞等 PP+：
+                    //  - 有缓存 → 直接用（过期也先用旧的出图）；
+                    //  - 没缓存 → 面板显示"正在初始化"；
+                    // 两者只要超过 24h（或没有缓存）就丢一个后台刷新任务，
+                    // 由 PPlusRefresh 写回缓存，下一次 !info 直接命中。
+                    var (cachedPPlus, pplusUpdatedAt) = await Database
+                        .Client
+                        .GetOsuPPlusDataNextWithTime(osuID);
+                    data.pplusInfo = cachedPPlus?.Performances;
+                    if (PPlusRefresh.IsStale(pplusUpdatedAt))
                     {
-                        data.pplusInfo = d.Performances;
-                        await Database.Client.UpdateOsuPPlusDataNext(d);
-                    }
-                    else
-                    {
-                        d = await Database.Client.GetOsuPPlusDataNext(osuID);
-                        if (d is not null)
-                        {
-                            data.pplusInfo = d.Performances;
-                        }
-                        else
-                        {
-                            data.pplusInfo = new();
-                        }
+                        data.pplusInitializing = cachedPPlus is null;
+                        PPlusRefresh.RequestRefresh(osuID);
                     }
                 }
             }
@@ -162,7 +158,7 @@ new() { Name = "pp_version", LegacyName = "pp", Description = "PP algorithm vers
             if (data.daysBefore > 0)
                 isDataOfDayAvaiavle = true;
 
-            int custominfoengineVer = 2;
+            int custominfoengineVer = 1;
 
             if (resolved.IamUserId != null)
             {

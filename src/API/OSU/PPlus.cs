@@ -127,28 +127,46 @@ namespace KanonBot.API.OSU
 
             public static async Task<Models.PPlusData.UserDataNext?> GetUserPlusDataNext(long uid)
             {
-                try
+                const int maxAttempts = 3;
+                for (var attempt = 1; attempt <= maxAttempts; attempt++)
                 {
-                    var response = await ExecuteRequestWithToken(() => 
-                        pplus()
-                            .AppendPathSegments("player", "info")
-                            .SetQueryParam("id", uid)
-                    );
-
-                    if (response.StatusCode == 404)
+                    try
                     {
+                        var response = await ExecuteRequestWithToken(() =>
+                            pplus()
+                                .AppendPathSegments("player", "info")
+                                .SetQueryParam("id", uid)
+                        );
+
+                        if (response.StatusCode == 404)
+                        {
+                            return null;
+                        }
+
+                        var s = await response.GetJsonAsync<JsonObject>();
+                        return s["data"]?.ToObject<Models.PPlusData.UserDataNext>();
+                    }
+                    catch (FlurlHttpException ex) when (
+                        attempt < maxAttempts
+                        && ex.Call.Response?.StatusCode >= 500
+                    )
+                    {
+                        Log.Warning(
+                            "PP+ service temporarily failed for osu! user {OsuId}; retrying ({Attempt}/{MaxAttempts})",
+                            uid,
+                            attempt,
+                            maxAttempts
+                        );
+                        await Task.Delay(TimeSpan.FromSeconds(attempt));
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex, "Failed to get PP+ data for osu! user {OsuId}", uid);
                         return null;
                     }
+                }
 
-                    var s = await response.GetJsonAsync<JsonObject>();
-                    var data = s["data"]?.ToObject<Models.PPlusData.UserDataNext>();
-                    return data;
-                }
-                catch (Exception ex)
-                {
-                    Log.Error("获取用户数据失败: {}", ex.Message);
-                    return null;
-                }
+                return null;
             }
 
             public static async Task<Models.PPlusData.UserDataNext?> UpdateUserPlusDataNext(long uid)
@@ -158,7 +176,10 @@ namespace KanonBot.API.OSU
                     var response = await ExecuteRequestWithToken(() => 
                         pplus()
                             .AppendPathSegments("player", "update")
-                            .SetQueryParam("id", uid),
+                            .SetQueryParam("id", uid)
+                            // 首次初始化要全量拉分，实测重玩家可达 3-5 分钟；
+                            // !ppvs 需要"等到算完再发"，所以这里给足 360s。
+                            .WithTimeout(TimeSpan.FromSeconds(360)),
                         isPost: true
                     );
 
@@ -173,7 +194,7 @@ namespace KanonBot.API.OSU
                 }
                 catch (Exception ex)
                 {
-                    Log.Error("更新用户数据失败: {}", ex.Message);
+                    Log.Error(ex, "Failed to update PP+ data for osu! user {OsuId}", uid);
                     return null;
                 }
             }
