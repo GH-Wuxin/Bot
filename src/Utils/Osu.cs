@@ -13,14 +13,20 @@ public static partial class Utils
     {
         if (resolved.IsPpysb)
         {
-            var sbUser = await API.PPYSB.Client.GetUser(resolved.OsuId);
+            var sbUser = resolved.PpysbProfile?.Info.Id == resolved.OsuId
+                ? resolved.PpysbProfile
+                : await API.PPYSB.Client.GetUser(resolved.OsuId);
+            resolved.PpysbProfile = sbUser;
             return (sbUser?.ToOsu(resolved.SbMode), sbUser);
         }
 
-        return (
-            await API.OSU.Client.GetUser(resolved.OsuId, resolved.Mode!.Value),
-            null
-        );
+        var mode = resolved.Mode!.Value;
+        var osuUser = resolved.OsuProfile?.Id == resolved.OsuId && resolved.OsuProfileMode == mode
+            ? resolved.OsuProfile
+            : await API.OSU.Client.GetUser(resolved.OsuId, mode);
+        resolved.OsuProfile = osuUser;
+        resolved.OsuProfileMode = mode;
+        return (osuUser, null);
     }
 
     public static (double scorePP, double bonusPP, int rankedScores) CalculateBonusPP(IEnumerable<API.OSU.Models.ScoreLazer> allBP, API.OSU.Models.UserExtended OnlineOsuInfo)

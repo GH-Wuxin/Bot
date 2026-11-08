@@ -30,6 +30,7 @@ public static class Client
     /// </summary>
     public static async Task<KanonBotProfile?> GetPublicKanonBotProfile(string userId)
     {
+        if (!Config.KagamiEnabled) return null;
         return await Http()
             .AppendPathSegments("api", "integrations", "kanonbot", "users", userId, "profile")
             .TryGetJsonAsync<KanonBotProfile>();
@@ -41,6 +42,7 @@ public static class Client
     /// </summary>
     public static async Task<KanonImages?> GetKanonImages(string userId)
     {
+        if (!Config.KagamiEnabled) return null;
         return await Http()
             .AppendPathSegments("api", "integrations", "kanonbot", "users", userId, "images")
             .TryGetJsonAsync<KanonImages>();
@@ -52,6 +54,7 @@ public static class Client
     /// </summary>
     public static async Task<List<UserBadgeResponse>?> GetUserBadges(string userId)
     {
+        if (!Config.KagamiEnabled) return null;
         return await Http()
             .AppendPathSegments("api", "integrations", "kanonbot", "users", userId, "badges")
             .TryGetJsonAsync<List<UserBadgeResponse>>();
@@ -63,6 +66,7 @@ public static class Client
     /// </summary>
     public static async Task<List<UserBadgeResponse>?> GetUserWearBadges(string userId)
     {
+        if (!Config.KagamiEnabled) return null;
         return await Http()
             .AppendPathSegments("api", "integrations", "kanonbot", "users", userId, "badges", "wears")
             .TryGetJsonAsync<List<UserBadgeResponse>>();
@@ -74,6 +78,7 @@ public static class Client
     /// </summary>
     public static async Task<UserPermissionsResponse?> GetUserPermissions(string userId)
     {
+        if (!Config.KagamiEnabled) return null;
         return await Http()
             .AppendPathSegments("api", "integrations", "kanonbot", "users", userId, "permissions")
             .TryGetJsonAsync<UserPermissionsResponse>();

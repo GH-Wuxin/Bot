@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -28,15 +29,17 @@ public partial class OneBot
             WatsonWsServer server;
             ClientMetadata client;
             public string selfID { get; init; }
+            public bool SupportsWuxinCompletion { get; }
 
             private bool isClose;
 
-            public Socket(WatsonWsServer server, ClientMetadata client, string selfID)
+            public Socket(WatsonWsServer server, ClientMetadata client, string selfID, bool supportsWuxinCompletion = false)
             {
                 this.api = new(this);
                 this.server = server;
                 this.client = client;
                 this.selfID = selfID;
+                this.SupportsWuxinCompletion = supportsWuxinCompletion;
                 this.isClose = false;
             }
 
@@ -93,8 +96,7 @@ public partial class OneBot
 
         class Clients
         {
-            private Dictionary<Guid, Socket> inner = new();
-            private Mutex mut = new();
+            private readonly ConcurrentDictionary<Guid, Socket> inner = new();
 
             public Socket? Get(Guid k)
             {
@@ -103,22 +105,18 @@ public partial class OneBot
 
             public void Set(Guid k, Socket v)
             {
-                mut.WaitOne();
-                this.inner.Add(k, v);
-                mut.ReleaseMutex();
+                this.inner.TryAdd(k, v);
             }
 
             public Socket? Remove(Guid k)
             {
-                mut.WaitOne();
-                this.inner.Remove(k, out Socket? s);
-                mut.ReleaseMutex();
+                this.inner.TryRemove(k, out Socket? s);
                 return s;
             }
 
             public IEnumerable<KeyValuePair<Guid, Socket>> Iter()
             {
-                return this.inner;
+                return this.inner.ToArray();
             }
         }
 
@@ -164,7 +162,8 @@ public partial class OneBot
                     return;
                 }
 
-                this.clients.Set(e.Client.Guid, new Socket(this.instance, e.Client, selfID));
+                this.clients.Set(e.Client.Guid, new Socket(this.instance, e.Client, selfID,
+                    e.HttpRequest.Headers.Get("X-Wuxin-Completion") == "1"));
             };
 
             this.instance.ClientDisconnected += (sender, e) =>
@@ -184,7 +183,8 @@ public partial class OneBot
                 {
                     try
                     {
-                        var s = this.clients.Get(e.Client.Guid)!;
+                        var s = this.clients.Get(e.Client.Guid);
+                        if (s is null) return;
                         await this.Parse(message, s);
                     }
                     catch (Exception ex)
@@ -254,7 +254,16 @@ public partial class OneBot
 
                     var source = MessageSource.FromOneBot(obj);
 
-                    await msgAction.Invoke(
+                    string? completionId = null;
+                    if (socket.SupportsWuxinCompletion
+                        && root.TryGetProperty("wuxin_request_id", out var requestId)
+                        && requestId.ValueKind == JsonValueKind.String
+                        && Guid.TryParseExact(requestId.GetString(), "D", out var parsedRequestId))
+                        completionId = parsedRequestId.ToString("D");
+
+                    try
+                    {
+                        await msgAction.Invoke(
                         new Target
                         {
                             time = DateTimeOffset.FromUnixTimeSeconds(obj.Time),
@@ -266,7 +275,29 @@ public partial class OneBot
                             source = source,
                             socket = socket
                         }
-                    );
+                        );
+                    }
+                    finally
+                    {
+                        // All command replies (including multi-frame replies)
+                        // have completed their OneBot acknowledgements here.
+                        // Legacy clients never opt into this extension.
+                        if (completionId is not null)
+                        {
+                            try
+                            {
+                                await socket.SendAsync(Json.Serialize(new
+                                {
+                                    post_type = "meta_event",
+                                    meta_event_type = "wuxin_bridge",
+                                    sub_type = "command_complete",
+                                    wuxin_request_id = completionId,
+                                    message_id = obj.MessageId,
+                                }));
+                            }
+                            catch { /* The requester may already have timed out. */ }
+                        }
+                    }
                     return;
                 }
 

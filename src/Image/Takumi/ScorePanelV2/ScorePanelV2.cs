@@ -87,9 +87,12 @@ public static class ScoreV2
         var beatmapset = score.Beatmapset!;
         var user = score.User!;
 
-        var avatarPath = await LoadOrDownloadAvatar(user);
+        var avatarTask = LoadOrDownloadAvatar(user);
+        var backgroundTask = LoadOrDownloadBackground(beatmap.BeatmapsetId, beatmap.BeatmapId);
+        await Task.WhenAll(new Task[] { avatarTask, backgroundTask });
+        var avatarPath = await avatarTask;
         var backgroundPath =
-            await LoadOrDownloadBackground(beatmap.BeatmapsetId, beatmap.BeatmapId)
+            await backgroundTask
             ?? AssetPath("legacy", "load-failed-img.png");
 
         var accuracyPercent = score.AccAuto * 100f;

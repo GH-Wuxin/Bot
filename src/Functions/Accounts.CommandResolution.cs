@@ -175,6 +175,8 @@ namespace KanonBot.Functions
                     OsuId = osuInfo.Id,
                     Mode = osuMode ?? osuInfo.Mode,
                     IsPpysb = false,
+                    OsuProfile = osuInfo,
+                    OsuProfileMode = API.OSU.Mode.OSU,
                 };
             }
             else if (!atOSU.IsNone && iamUserId != null)
@@ -191,6 +193,8 @@ namespace KanonBot.Functions
                     Mode = osuMode ?? kagamiMode ?? osuInfo.Mode,
                     IsPpysb = false,
                     IamUserId = iamUserId,
+                    OsuProfile = osuInfo,
+                    OsuProfileMode = API.OSU.Mode.OSU,
                 };
             }
             else
@@ -225,6 +229,8 @@ namespace KanonBot.Functions
                     Mode = mode,
                     IsPpysb = false,
                     IamUserId = iamId,
+                    OsuProfile = onlineUser,
+                    OsuProfileMode = osuMode ?? API.OSU.Mode.OSU,
                 };
             }
         }
@@ -306,6 +312,7 @@ namespace KanonBot.Functions
                     SbMode = resolvedSbMode,
                     IsPpysb = true,
                     IamUserId = iamId,
+                    PpysbProfile = onlineUser,
                 };
             }
         }

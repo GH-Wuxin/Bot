@@ -50,6 +50,7 @@ public static class Client
     /// </summary>
     public static async Task<string?> GetIamUserIdByExternalId(string provider, string externalId)
     {
+        if (!Config.IamEnabled) return null;
         // Map provider to URL segment
         var segment = provider switch
         {
@@ -133,6 +134,7 @@ public static class Client
     /// </summary>
     public static async Task<OsuBindingsResponse?> GetOsuBindings()
     {
+        if (!Config.IamEnabled) return null;
         return await Http()
             .AppendPathSegments("api", "integrations", "bot", "users", "osu-bindings")
             .TryGetJsonAsync<OsuBindingsResponse>();
@@ -144,6 +146,7 @@ public static class Client
     /// </summary>
     public static async Task<PpySbBindingsResponse?> GetPpySbBindings()
     {
+        if (!Config.IamEnabled) return null;
         return await Http()
             .AppendPathSegments("api", "integrations", "bot", "users", "ppy-sb-bindings")
             .TryGetJsonAsync<PpySbBindingsResponse>();
@@ -155,6 +158,7 @@ public static class Client
     /// </summary>
     public static async Task<UserBindingsResponse?> GetUserBindings(string userId)
     {
+        if (!Config.IamEnabled) return null;
         return await Http()
             .AppendPathSegments("api", "integrations", "bot", "users", userId, "bindings")
             .TryGetJsonAsync<UserBindingsResponse>();
@@ -186,6 +190,7 @@ public static class Client
     /// </summary>
     public static async Task<string?> GetIamUserIdByOsuUid(long osuUid)
     {
+        if (!Config.IamEnabled) return null;
         var result = await Http()
             .AppendPathSegments("api", "integrations", "bot", "users", "by-osu", osuUid.ToString())
             .TryGetJsonAsync<BoundUserLookupResponse>();
@@ -200,6 +205,7 @@ public static class Client
     /// </summary>
     public static async Task<List<string>?> GetIamUserIdsByPpysbUid(long ppysbUid)
     {
+        if (!Config.IamEnabled) return null;
         var result = await Http()
             .AppendPathSegments("api", "integrations", "bot", "users", "by-ppy-sb", ppysbUid.ToString())
             .TryGetJsonAsync<PpysbBoundUsersLookupResponse>();

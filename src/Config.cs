@@ -124,6 +124,14 @@ public class Config
         public string? apiKey { get; set; }
     }
 
+    public static bool IamEnabled =>
+        !string.IsNullOrEmpty(inner?.iam?.apiKey)
+        && !inner!.iam!.apiKey.StartsWith("CHANGE_ME");
+
+    public static bool KagamiEnabled =>
+        !string.IsNullOrEmpty(inner?.kagami?.apiKey)
+        && !inner!.kagami!.apiKey.StartsWith("CHANGE_ME");
+
     public class Kagami
     {
         [TomlProperty("base_url")]
