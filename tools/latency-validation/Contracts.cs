@@ -40,6 +40,12 @@ static class Contracts
     public static async Task Run() {
         Directory.CreateDirectory(root);
         Console.WriteLine("TEST_ROOT " + root);
+        var configuration=Config.Base.Default();
+        configuration.database!.db="isolated_roundtrip";
+        configuration.drivers=[new(new Config.OneBotServer{host=["127.0.0.1"],port=27772})];
+        var configurationFile=Path.Combine(root,"roundtrip.toml");configuration.save(configurationFile);
+        var restoredConfiguration=Config.load(configurationFile);
+        Check(restoredConfiguration.database?.db=="isolated_roundtrip"&&restoredConfiguration.drivers.Length==1&&restoredConfiguration.drivers[0].OneBotServer?.port==27772,"configuration save/load preserves database and driver settings");
         using (var http = new HttpTest()) {
             await KanonBot.API.IAM.Client.GetIamUserIdByExternalId("qq", "123");
             await KanonBot.API.IAM.Client.GetIamUserIdByOsuUid(42);
@@ -128,6 +134,22 @@ static class Contracts
             await WaitFor(()=> {try {return JsonNode.Parse(File.ReadAllText(Metadata(concurrency)))!["RetryAfter"]!.GetValue<DateTimeOffset>()>DateTimeOffset.UtcNow;}catch{return false;}});
             await Utils.CacheRemoteImage(concurrency,"https://image.test/shared","asset");
             Check(File.ReadAllBytes(preserved!).SequenceEqual(b) && http.CallLog.Count==1, "refresh timeout preserves the good asset and backs off retries");
+        }
+        var sharedReader=Path.Combine(root,"shared-reader");
+        using(var http=new HttpTest()) {
+            http.RespondWith(()=>new ByteArrayContent(a));
+            await Utils.CacheRemoteImage(sharedReader,"https://image.test/shared-reader","asset");
+        }
+        Expire(sharedReader);
+        using(var http=new HttpTest()) {
+            http.RespondWith(()=>new ByteArrayContent(b));
+            using(var reader=new FileStream(Metadata(sharedReader),FileMode.Open,FileAccess.Read,FileShare.Read)) {
+                await Utils.CacheRemoteImage(sharedReader,"https://image.test/shared-reader","asset");
+                await Task.Delay(35);
+            }
+            await WaitFor(()=>Updated(sharedReader));
+            var refreshed=await Utils.CacheRemoteImage(sharedReader,"https://image.test/shared-reader","asset");
+            Check(File.ReadAllBytes(refreshed!).SequenceEqual(b),"temporary metadata read lock does not lose a completed refresh");
         }
         var legacy=Path.Combine(root,"legacy"); Directory.CreateDirectory(legacy);
         File.WriteAllBytes(Path.Combine(legacy,"asset.png"),a); File.WriteAllText(Path.Combine(legacy,"asset.etag"),"\"legacy\"|png");

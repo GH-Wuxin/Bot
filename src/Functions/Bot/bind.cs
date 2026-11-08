@@ -14,7 +14,7 @@ namespace KanonBot.Functions
                 Description = "Bind your account",
                 Args =
                 [
-                    new() { Name = "code", Description = "Binding verification code", Prefix = ArgPrefix.None, Strategy = ParseStrategy.Simple },
+                    new() { Name = "code", Description = "Binding verification code or local osu! username", Prefix = ArgPrefix.None, Strategy = ParseStrategy.Simple },
                 ],
                 Flags =  [ ]
             };
@@ -26,6 +26,12 @@ namespace KanonBot.Functions
             if (accInfo.platform == Platform.Unknown)
             {
                 await target.Treply("account.platform_unknown");
+                return;
+            }
+
+            if (!Config.IamEnabled)
+            {
+                await BindLocally(target, input, accInfo);
                 return;
             }
 
@@ -121,6 +127,76 @@ namespace KanonBot.Functions
                 default:
                     await target.Treply("bind.session_failed");
                     return;
+            }
+        }
+        private static async Task BindLocally(Target target, string input, Accounts.AccInfo accInfo)
+        {
+            if (accInfo.platform != Platform.OneBot)
+            {
+                await target.Treply("bind.platform_unsupported");
+                return;
+            }
+
+            if (!long.TryParse(accInfo.uid, out var qqId))
+            {
+                await target.Treply("bind.service_error");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                await target.Treply("bind.local_usage");
+                return;
+            }
+
+            var username = input.Trim();
+
+            API.OSU.Models.UserExtended? osuUser;
+            try
+            {
+                osuUser = await API.OSU.Client.GetUser(username);
+            }
+            catch (Exception)
+            {
+                await target.Treply("bind.service_error");
+                return;
+            }
+
+            if (osuUser == null)
+            {
+                await target.Treply("bind.user_not_found");
+                return;
+            }
+
+            var user = await Database.Client.CreateOrUpdateQQUser(qqId);
+            if (user == null)
+            {
+                await target.Treply("bind.service_error");
+                return;
+            }
+
+            var existingBind = await Database.Client.GetOsuUserByUID(user.uid);
+            if (existingBind != null)
+            {
+                if (existingBind.osu_uid == osuUser.Id)
+                {
+                    await target.Treply("bind.already_bound");
+                }
+                else
+                {
+                    await target.Treply("bind.already_bound_other");
+                }
+                return;
+            }
+
+            var success = await Database.Client.InsertOsuUser(user.uid, osuUser.Id);
+            if (success)
+            {
+                await target.Treply("bind.success", osuUser.Username);
+            }
+            else
+            {
+                await target.Treply("bind.service_error");
             }
         }
     }

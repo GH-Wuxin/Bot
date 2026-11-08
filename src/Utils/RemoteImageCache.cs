@@ -38,18 +38,30 @@ internal static class RemoteImageCache
             var urlHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(url)))[..16];
             var stem = $"{legacyStem}-{urlHash}";
             var metadataPath = Path.Combine(root, stem + ".cache.json");
-            var entry = ReadEntry(root, metadataPath);
-            var existing = entry is null ? null : Path.Combine(root, entry.FileName);
-            var now = DateTimeOffset.UtcNow;
-            if (entry is not null && (now - entry.ValidatedAt < FreshFor || now < entry.RetryAfter))
-                return Task.FromResult(existing);
+            while (true)
+            {
+                var entry = ReadEntry(root, metadataPath);
+                var existing = entry is null ? null : Path.Combine(root, entry.FileName);
+                var now = DateTimeOffset.UtcNow;
+                if (entry is not null && (now - entry.ValidatedAt < FreshFor || now < entry.RetryAfter))
+                    return Task.FromResult(existing);
 
-            var lazy = InFlight.GetOrAdd(metadataPath, _ => new Lazy<Task<string?>>(
-                () => Refresh(root, url, stem, legacyStem, metadataPath, entry)));
-            var refresh = Complete(metadataPath, lazy);
-            // Warm assets stay usable while a bounded background refresh runs.
-            // Cold/migrated entries are validated once before they become fresh.
-            return existing is not null ? Task.FromResult<string?>(existing) : refresh;
+                var lazy = InFlight.GetOrAdd(metadataPath, _ => new Lazy<Task<string?>>(
+                    () => Refresh(root, url, stem, legacyStem, metadataPath, entry)));
+                // A completed refresh may still be waiting for Complete's
+                // continuation to remove it. Re-read metadata after removing
+                // that exact flight so an expired entry starts a new refresh.
+                if (lazy.IsValueCreated && lazy.Value.IsCompleted)
+                {
+                    ((ICollection<KeyValuePair<string, Lazy<Task<string?>>>>)InFlight)
+                        .Remove(new KeyValuePair<string, Lazy<Task<string?>>>(metadataPath, lazy));
+                    continue;
+                }
+                var refresh = Complete(metadataPath, lazy);
+                // Warm assets stay usable while a bounded background refresh runs.
+                // Cold/migrated entries are validated once before they become fresh.
+                return existing is not null ? Task.FromResult<string?>(existing) : refresh;
+            }
         }
         catch
         {
@@ -164,7 +176,14 @@ internal static class RemoteImageCache
         try
         {
             await File.WriteAllBytesAsync(temporary, bytes);
-            File.Move(temporary, path, true);
+            // Windows readers/scanners can briefly deny replacing a file.
+            // Keep the complete temporary file and retry the atomic rename.
+            for (var attempt = 0; ; attempt++)
+            {
+                try { File.Move(temporary, path, true); break; }
+                catch (IOException) when (attempt < 5) { await Task.Delay(10 * (attempt + 1)); }
+                catch (UnauthorizedAccessException) when (attempt < 5) { await Task.Delay(10 * (attempt + 1)); }
+            }
         }
         finally
         {

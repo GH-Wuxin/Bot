@@ -105,7 +105,9 @@ public class Model
         [Column]
         public bool haspickedup { get; set; }
     }
-    [Table("osu_standard_beatmap_tech_data")]
+    // Keep the legacy bid-only cache intact for rollback. This cache separates
+    // calculators/mods and must use a bounded utf8mb4 composite-key column.
+    [Table("osu_standard_beatmap_tech_data_v2")]
     public class OsuStandardBeatmapTechData
     {
         [PrimaryKey(0)]
@@ -127,6 +129,7 @@ public class Model
         public int acc { get; set; }
 
         [PrimaryKey(1)]
+        [Column(Length = 512)]
         public string? mod { get; set; }
 
         [Column]

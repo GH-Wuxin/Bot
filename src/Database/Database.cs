@@ -25,6 +25,14 @@ public class Client
 {
     private static Config.Base config = Config.inner!;
 
+    private static string TechDataCalculatorPrefix(string calculatorId)
+    {
+        var version = calculatorId == KanonBot.OsuPerformance.PerformanceCalculatorIds.OsuCurrent
+            ? typeof(osu.Game.OsuGameBase).Assembly.GetName().Version?.ToString()
+            : "v2";
+        return $"{calculatorId}@{version}|";
+    }
+
     public static void EnsureSchema()
     {
         using var db = GetInstance();
@@ -654,7 +662,7 @@ public class Client
             modstring = modstring[..^1];
         }
 
-        modstring = $"{calculatorId}|{modstring}";
+        modstring = TechDataCalculatorPrefix(calculatorId) + modstring;
 
         //查找谱面对应的mod和计算器数据是否存在
         var db_info = db.OsuStandardBeatmapTechData
@@ -678,8 +686,10 @@ public class Client
                     pp_98acc = a98,
                     pp_99acc = a99,
                 };
-            var result = await db.InsertAsync(t);
-            return result > 0;
+            // Concurrent recent-score refreshes can discover the same missing
+            // row. The composite key makes this upsert safe for both callers.
+            var result = await db.InsertOrReplaceAsync(t);
+            return result >= 0;
         }
         else
         {
@@ -725,7 +735,7 @@ public class Client
         var trange = range;
         if (boost)
             trange = 50;
-        var calculatorPrefix = $"{calculatorId}|";
+        var calculatorPrefix = TechDataCalculatorPrefix(calculatorId);
         var results = await db.OsuStandardBeatmapTechData
             .Where(
                 it =>

@@ -76,7 +76,10 @@ Log.Information(
     string.Join(", ", KanonBot.I18n.Localizer.Instance.Store.LoadedLocales.Select(l => l.ToCode()))
 );
 
-Log.Information("初始化成功 {@config}", config);
+Log.Information("Configuration loaded.");
+
+KanonBot.Database.Client.EnsureSchema();
+Log.Information("Database schema is ready.");
 
 if (config.dev)
 {

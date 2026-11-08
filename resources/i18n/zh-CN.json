@@ -73,6 +73,10 @@
   "bind.session_failed": "生成绑定链接失败，请稍后再试。",
   "bind.already_bound": "你的平台账户已经绑定过 desu.life 账户了。若需更换绑定，请联系管理员。",
   "bind.session_link": "请点击一次性链接完成绑定：\n{0}\n进入页面后直接使用 osu! 登录，完成绑定流程\n绑定的验证码可以通过 {prefix}bind 验证码 提交。",
+  "bind.local_usage": "使用方法: {prefix}bind <osu!用户名>\n示例: {prefix}bind example",
+  "bind.user_not_found": "没有找到 osu! 用户，请检查拼写。",
+  "bind.already_bound_other": "你已经绑定了不同的 osu! 账号，如需更换请联系管理员。",
+  "bind.success": "成功绑定为 osu! 用户 {0}。",
 
   "set.migrated": "面板相关设置已迁移到网页端，请前往 {0} 进行设置。",
   "set.deprecated": "该设置项已迁移到网页端，请前往 {0} 进行设置。",

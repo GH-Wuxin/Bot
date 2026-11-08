@@ -1,6 +1,6 @@
-using System.IO;
 namespace KanonBot.Image.Takumi;
 
+using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using global::Takumi.Template.UniFFI;
@@ -70,9 +70,15 @@ public static class TakumiHelper
     public static async Task<string> LoadOrDownloadAvatar(API.OSU.Models.User userInfo)
     {
         var key = userInfo.AvatarUrl.Host == "a.ppy.sb" ? $"sb-{userInfo.Id}" : $"{userInfo.Id}";
-        var cachedPath =
-            await CacheRemoteImage(userInfo.AvatarUrl.ToString(), key)
-            ?? throw new Exception($"下载用户头像失败: {userInfo.AvatarUrl}");
+        var cachedPath = await CacheRemoteImage(userInfo.AvatarUrl.ToString(), key);
+        if (cachedPath == null)
+        {
+            Log.Warning("Failed to download avatar for {UserId}, using default", userInfo.Id);
+            var defaultAvatar = Path.Combine(cacheRoot, "guest-avatar.png");
+            if (File.Exists(defaultAvatar))
+                return defaultAvatar;
+            return AssetPath("legacy", "load-failed-img.png");
+        }
         return cachedPath;
     }
 

@@ -39,6 +39,36 @@ namespace KanonBot.Functions
                 return null;
             }
 
+            // Local DB path when IAM is disabled
+            if (!Config.IamEnabled)
+            {
+                if (accInfo.platform != Platform.OneBot)
+                {
+                    await target.Treply("account.platform_unsupported");
+                    return null;
+                }
+                if (!long.TryParse(accInfo.uid, out var qqId))
+                {
+                    await target.Treply("account.not_bound");
+                    return null;
+                }
+                var localOsu = await Database.Client.GetOsuUserByQQ(qqId);
+                if (localOsu == null)
+                {
+                    await target.Treply("account.not_bound");
+                    return null;
+                }
+                var localUser = await Database.Client.GetUsersByUID(accInfo.uid, Platform.OneBot);
+                var mode = ParseModeFromOsuUser(localOsu);
+                return new CommandUserResult
+                {
+                    OsuId = localOsu.osu_uid,
+                    Mode = mode,
+                    IsPpysb = false,
+                    IamUserId = localUser?.uid.ToString(),
+                };
+            }
+
             // Resolve via IAM
             string provider;
             try

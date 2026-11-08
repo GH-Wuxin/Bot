@@ -33,7 +33,7 @@ public static class PerformanceCalculatorIds
     public const string OsuCurrent = "osu/current";
     public const string PpySb = "rosu/ppy.sb";
 
-    public static bool ShouldRenderVersion(string id) => id != RosuCurrent && id != PpySb;
+    public static bool ShouldRenderVersion(string id) => id != OsuCurrent && id != RosuCurrent && id != PpySb;
 }
 
 internal readonly record struct LegacyPerformanceCalculatorRegistration(

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>OsuPP</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -16,13 +16,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../osu/osu.Game.Rulesets.Catch/osu.Game.Rulesets.Catch.csproj" ExcludeAssets="native;build;content" PrivateAssets="native;build;content" />
-    <ProjectReference Include="../osu/osu.Game.Rulesets.Mania/osu.Game.Rulesets.Mania.csproj" ExcludeAssets="native;build;content" PrivateAssets="native;build;content" />
-    <ProjectReference Include="../osu/osu.Game.Rulesets.Osu/osu.Game.Rulesets.Osu.csproj" ExcludeAssets="native;build;content" PrivateAssets="native;build;content" />
-    <ProjectReference Include="../osu/osu.Game.Rulesets.Taiko/osu.Game.Rulesets.Taiko.csproj" ExcludeAssets="native;build;content" PrivateAssets="native;build;content" />
+    <!-- Match the version used by ppy/osu-queue-score-statistics. -->
+    <PackageReference Include="ppy.osu.Game" Version="2026.1026.0" />
+    <PackageReference Include="ppy.osu.Game.Rulesets.Catch" Version="2026.1026.0" />
+    <PackageReference Include="ppy.osu.Game.Rulesets.Mania" Version="2026.1026.0" />
+    <PackageReference Include="ppy.osu.Game.Rulesets.Osu" Version="2026.1026.0" />
+    <PackageReference Include="ppy.osu.Game.Rulesets.Taiko" Version="2026.1026.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageReference Include="ppy.osu.Game.Resources" Version="2026.710.0" ExcludeAssets="all" PrivateAssets="all" />
-    <PackageReference Include="ppy.osu.Framework" Version="2026.629.0" ExcludeAssets="native;build;content" PrivateAssets="native;build;content" />
   </ItemGroup>
 
 </Project>

@@ -94,13 +94,7 @@ namespace KanonBot.API.OSU
                 Log.Information("正在获取OSUApiV2_Token");
                 if (await GetToken())
                 {
-                    Log.Information(
-                        string.Concat(
-                            "获取成功, Token: ",
-                            Token.AsSpan(Utils.TryGetConsoleWidth() - 38),
-                            "..."
-                        )
-                    );
+                    Log.Information("OSUApiV2_Token acquired successfully");
                     Log.Information(
                         $"Token过期时间: {DateTimeOffset.FromUnixTimeSeconds(TokenExpireTime).DateTime.ToLocalTime()}"
                     );
@@ -111,13 +105,7 @@ namespace KanonBot.API.OSU
                 Log.Information("OSUApiV2_Token已过期, 正在重新获取");
                 if (await GetToken())
                 {
-                    Log.Information(
-                        string.Concat(
-                            "获取成功, Token: ",
-                            Token.AsSpan(Utils.TryGetConsoleWidth() - 38),
-                            "..."
-                        )
-                    );
+                    Log.Information("OSUApiV2_Token refreshed successfully");
                     Log.Information(
                         $"Token过期时间: {DateTimeOffset.FromUnixTimeSeconds(TokenExpireTime).DateTime.ToLocalTime()}"
                     );

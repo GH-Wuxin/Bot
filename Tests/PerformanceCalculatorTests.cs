@@ -34,7 +34,7 @@ public class PerformanceCalculatorTests
     public void ExplicitUnsupportedCalculatorFallsBackToDefault()
     {
         Assert.Equal(
-            PerformanceCalculatorIds.RosuCurrent,
+            PerformanceCalculatorIds.OsuCurrent,
             UniversalCalculator.ResolveCalculatorId(
                 PerformanceCalculatorIds.V2019,
                 Mode.Taiko
@@ -48,9 +48,20 @@ public class PerformanceCalculatorTests
     public void InvalidCalculatorFallsBackToDefault(string requested, Mode mode)
     {
         Assert.Equal(
-            PerformanceCalculatorIds.RosuCurrent,
+            PerformanceCalculatorIds.OsuCurrent,
             UniversalCalculator.ResolveCalculatorId(requested, mode)
         );
+    }
+
+    [Theory]
+    [InlineData(Mode.OSU)]
+    [InlineData(Mode.Taiko)]
+    [InlineData(Mode.Fruits)]
+    [InlineData(Mode.Mania)]
+    public void OfficialCalculatorIsDefaultForEveryMode(Mode mode)
+    {
+        Assert.Equal(PerformanceCalculatorIds.OsuCurrent, UniversalCalculator.ResolveCalculatorId(null, mode));
+        Assert.Equal(PerformanceCalculatorIds.RosuCurrent, UniversalCalculator.ResolveCalculatorId("rosu", mode));
     }
 
     [Fact]

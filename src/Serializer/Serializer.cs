@@ -58,7 +58,9 @@ public static class Json
 
 public static class Toml
 {
-    public static string Serialize(object self) => TomletMain.TomlStringFrom(self);
+    public static string Serialize<T>(T self) =>
+        TomletMain.TomlStringFrom(self)
+        ?? throw new InvalidOperationException("TOML serialization returned no document.");
 
     public static T Deserialize<T>(string toml)
         where T : class, new() => TomletMain.To<T>(toml);

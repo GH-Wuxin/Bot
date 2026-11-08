@@ -85,7 +85,7 @@ public static class UniversalCalculator
                 ? KanonBot.Config.inner?.preview == true
                     ? PerformanceCalculatorIds.OsuCurrent
                     : PerformanceCalculatorIds.V2025_10
-                : PerformanceCalculatorIds.RosuCurrent;
+                : PerformanceCalculatorIds.OsuCurrent;
 
         if (string.IsNullOrWhiteSpace(requestedVersion))
             return defaultId;

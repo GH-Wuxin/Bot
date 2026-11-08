@@ -73,6 +73,10 @@
   "bind.session_failed": "Failed to generate binding link. Please try again later.",
   "bind.already_bound": "Your platform account is already linked to a desu.life account. Contact an admin to change it.",
   "bind.session_link": "Click the one-time link to complete binding:\n{0}\nLog in with your osu! account on the page to complete the process.\nYou can submit the verification code via {prefix}bind <code>.",
+  "bind.local_usage": "Usage: {prefix}bind <osu!username>\nExample: {prefix}bind example",
+  "bind.user_not_found": "osu! user not found. Please check your spelling.",
+  "bind.already_bound_other": "You are already bound to a different osu! account. Contact an admin to change it.",
+  "bind.success": "Successfully bound to osu! user {0}.",
 
   "set.migrated": "Panel settings have been moved to the web. Visit {0} to configure.",
   "set.deprecated": "This setting has been moved to the web. Visit {0} to configure.",

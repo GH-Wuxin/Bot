@@ -43,45 +43,55 @@ namespace KanonBot.Functions
                 return;
             }
 
-            // 验证账户 (via IAM)
-            var AccInfo = Accounts.GetAccInfo(target);
-            string provider;
-            try
+            // 验证账户 (via IAM or local DB)
+            if (!Config.IamEnabled)
             {
-                provider = API.IAM.Client.PlatformToProvider(AccInfo.platform);
+                var ctx = await Accounts.ResolveIamUser(target);
+                if (ctx?.OsuUid == null) { await target.Treply("account.not_bound"); return; }
+                OnlineOsuInfo = await API.OSU.Client.GetUser(ctx.OsuUid.Value);
+                if (OnlineOsuInfo == null) { await target.Treply("account.banned"); return; }
             }
-            catch (NotSupportedException)
+            else
             {
-                await target.Treply("account.platform_unsupported");
-                return;
-            }
+                var AccInfo = Accounts.GetAccInfo(target);
+                string provider;
+                try
+                {
+                    provider = API.IAM.Client.PlatformToProvider(AccInfo.platform);
+                }
+                catch (NotSupportedException)
+                {
+                    await target.Treply("account.platform_unsupported");
+                    return;
+                }
 
-            var iamUserId = await API.IAM.Client.GetIamUserIdByExternalId(provider, AccInfo.uid);
-            if (iamUserId == null)
-            {
-                await target.Treply("account.not_bound");
-                return;
-            }
+                var iamUserId = await API.IAM.Client.GetIamUserIdByExternalId(provider, AccInfo.uid);
+                if (iamUserId == null)
+                {
+                    await target.Treply("account.not_bound");
+                    return;
+                }
 
-            var bindings = await API.IAM.Client.GetUserBindings(iamUserId);
-            if (bindings == null)
-            {
-                await target.Treply("account.fetch_failed");
-                return;
-            }
+                var bindings = await API.IAM.Client.GetUserBindings(iamUserId);
+                if (bindings == null)
+                {
+                    await target.Treply("account.fetch_failed");
+                    return;
+                }
 
-            var osuUid = API.IAM.Client.ExtractOsuUid(bindings);
-            if (!osuUid.HasValue)
-            {
-                await target.Treply("account.osu_not_bound");
-                return;
-            }
+                var osuUid = API.IAM.Client.ExtractOsuUid(bindings);
+                if (!osuUid.HasValue)
+                {
+                    await target.Treply("account.osu_not_bound");
+                    return;
+                }
 
-            OnlineOsuInfo = await API.OSU.Client.GetUser(osuUid.Value);
-            if (OnlineOsuInfo == null)
-            {
-                await target.Treply("account.banned");
-                return;
+                OnlineOsuInfo = await API.OSU.Client.GetUser(osuUid.Value);
+                if (OnlineOsuInfo == null)
+                {
+                    await target.Treply("account.banned");
+                    return;
+                }
             }
 
             long bid;
