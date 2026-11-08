@@ -51,6 +51,17 @@ namespace KanonBot.Functions
 
             /// <summary>Whether the user is a registered desu.life user.</summary>
             public bool IsRegistered => IamUserId != null;
+
+            // Request-local snapshots. The requested mode is separate from
+            // UserExtended.Mode, which describes the player's preferred mode.
+            [System.Text.Json.Serialization.JsonIgnore]
+            public API.OSU.Models.UserExtended? OsuProfile { get; set; }
+
+            [System.Text.Json.Serialization.JsonIgnore]
+            public API.OSU.Mode? OsuProfileMode { get; set; }
+
+            [System.Text.Json.Serialization.JsonIgnore]
+            public API.PPYSB.Models.User? PpysbProfile { get; set; }
         }
 
         public static async Task<(Option<API.OSU.Models.UserExtended>, string?, bool)> ParseAtOsu(

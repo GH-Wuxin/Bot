@@ -1,3 +1,4 @@
+using System.IO;
 namespace KanonBot.Image.Takumi;
 
 using System.Text.Json;
